@@ -1,6 +1,6 @@
 manifestVersion: 1
 name: "@dougschaefer/google-meet-hardware"
-version: "2026.04.15.1"
+version: "2026.04.15.2"
 description: "Google Meet hardware device monitoring via Workspace Admin Reports API. Tracks device online/offline state, peripheral attach/detach (camera, mic, speaker, display, touch controller), call state (Meet, Teams, Webex, Zoom), power state, firmware updates, and restarts. Uses service account with domain-wide delegation — no interactive auth required."
 repository: https://github.com/dougschaefer6/swamp-google-meet-hardware
 labels:

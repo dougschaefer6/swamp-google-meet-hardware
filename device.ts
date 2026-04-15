@@ -40,7 +40,7 @@ const DeviceStateSchema = z.object({
 
 export const model = {
   type: "@dougschaefer/google-meet-hardware",
-  version: "2026.04.15.1",
+  version: "2026.04.15.2",
   globalArguments: GoogleMeetHardwareGlobalArgsSchema,
   resources: {
     device: {
