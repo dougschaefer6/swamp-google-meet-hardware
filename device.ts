@@ -38,6 +38,17 @@ const DeviceStateSchema = z.object({
   eventCount: z.number(),
 }).passthrough();
 
+/**
+ * `@dougschaefer/google-meet-hardware` model — monitors Google Meet
+ * hardware (Series One, Acer Chromebox, ASUS, etc.) via the Workspace
+ * Admin Reports API. Authentication uses a service account with
+ * domain-wide delegation. Sync enumerates the device fleet across an
+ * Admin SDK customer, capturing online/offline state, peripheral
+ * attribution, last event time, and rolling event count. Events
+ * returns the activity timeline for a single device (online, offline,
+ * peripheral connected/disconnected, error states) — useful for
+ * correlating outages against the Utelogy alert stream.
+ */
 export const model = {
   type: "@dougschaefer/google-meet-hardware",
   version: "2026.04.15.2",
