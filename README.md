@@ -38,7 +38,7 @@ Create a model instance wired to the vault and your tenant settings:
 swamp model create @dougschaefer/google-meet-hardware meet-devices \
   --global-arg 'serviceAccountJson=${{ vault.get("gworkspace", "google-sa-json") }}' \
   --global-arg 'adminEmail=admin@yourdomain.com' \
-  --global-arg 'customerId=C04je7dsl'
+  --global-arg 'customerId=<your-customer-id>'
 ```
 
 The `customerId` is your Workspace customer ID (visible at admin.google.com under Account Settings). The `adminEmail` must be a real Workspace admin in your tenant — the service account impersonates this user when calling the Reports API.

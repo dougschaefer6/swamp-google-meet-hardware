@@ -13,18 +13,18 @@ import { z } from "npm:zod@4.3.6";
  * Credentials are passed via globalArguments, typically from vault:
  *   serviceAccountJson: ${{ vault.get(<vault>, google-sa-json) }}
  *   adminEmail:         admin user to impersonate (e.g., admin@customer.com)
- *   customerId:         Workspace customer ID (e.g., C04je7dsl)
+ *   customerId:         Workspace customer ID (e.g., <your-customer-id>)
  */
 
 export const GoogleMeetHardwareGlobalArgsSchema = z.object({
   serviceAccountJson: z.string().meta({ sensitive: true }).describe(
     "GCP service account JSON key (entire file contents). Use: ${{ vault.get(<vault>, google-sa-json) }}",
   ),
-  adminEmail: z.string().describe(
+  adminEmail: z.string().meta({ sensitive: true }).describe(
     "Workspace admin email to impersonate via domain-wide delegation",
   ),
-  customerId: z.string().describe(
-    "Google Workspace customer ID (e.g., C04je7dsl)",
+  customerId: z.string().meta({ sensitive: true }).describe(
+    "Google Workspace customer ID (e.g., <your-customer-id>)",
   ),
 });
 
@@ -43,34 +43,44 @@ function base64urlEncode(str: string): string {
   return base64url(new TextEncoder().encode(str));
 }
 
+function pemToDer(pem: string): Uint8Array {
+  // Strip PEM header/footer lines and decode base64 body to DER bytes.
+  const b64 = pem
+    .split("\n")
+    .filter((l) => !l.startsWith("-----"))
+    .join("")
+    .trim();
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
 async function signRS256(
   message: string,
   privateKeyPem: string,
 ): Promise<string> {
-  const tmpKey = await Deno.makeTempFile({ suffix: ".pem" });
-  try {
-    await Deno.writeTextFile(tmpKey, privateKeyPem);
-    const signCmd = new Deno.Command("openssl", {
-      args: ["dgst", "-sha256", "-sign", tmpKey],
-      stdin: "piped",
-      stdout: "piped",
-      stderr: "piped",
-    });
-    const signProc = signCmd.spawn();
-    const writer = signProc.stdin.getWriter();
-    await writer.write(new TextEncoder().encode(message));
-    await writer.close();
-    const output = await signProc.output();
-    if (!output.success) {
-      const stderr = new TextDecoder().decode(output.stderr);
-      throw new Error(`openssl signing failed: ${stderr}`);
-    }
-    return base64url(output.stdout);
-  } finally {
-    try {
-      await Deno.remove(tmpKey);
-    } catch { /* ignore */ }
-  }
+  const der = pemToDer(privateKeyPem);
+  // importKey requires an ArrayBuffer, not Uint8Array<ArrayBufferLike>.
+  const derBuf: ArrayBuffer = der.buffer.slice(
+    der.byteOffset,
+    der.byteOffset + der.byteLength,
+  ) as ArrayBuffer;
+  const key = await crypto.subtle.importKey(
+    "pkcs8",
+    derBuf,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const msgBuf: ArrayBuffer = new TextEncoder().encode(message).buffer
+    .slice(0) as ArrayBuffer;
+  const sigBuf = await crypto.subtle.sign(
+    { name: "RSASSA-PKCS1-v1_5" },
+    key,
+    msgBuf,
+  );
+  return base64url(new Uint8Array(sigBuf));
 }
 
 interface TokenCache {

@@ -1,4 +1,3 @@
-// deno-lint-ignore-file no-explicit-any
 import { z } from "npm:zod@4.3.6";
 import {
   buildStateTable,
@@ -51,7 +50,7 @@ const DeviceStateSchema = z.object({
  */
 export const model = {
   type: "@dougschaefer/google-meet-hardware",
-  version: "2026.05.26.1",
+  version: "2026.05.27.1",
   globalArguments: GoogleMeetHardwareGlobalArgsSchema,
   resources: {
     device: {
@@ -61,6 +60,19 @@ export const model = {
       lifetime: "infinite",
       garbageCollection: 10,
     },
+    eventsQuery: {
+      description:
+        "Result of a Meet hardware events query — raw event list with optional filter and time range",
+      schema: z.object({
+        startTime: z.string(),
+        filter: z.string(),
+        eventCount: z.number(),
+        capturedAt: z.string(),
+        events: z.array(z.unknown()),
+      }).passthrough(),
+      lifetime: "7d",
+      garbageCollection: 5,
+    },
   },
   methods: {
     sync: {
@@ -68,7 +80,7 @@ export const model = {
         "Sync all Meet hardware device state from the Reports API. " +
         "Fetches events from the past 24 hours and computes current device state.",
       arguments: z.object({}),
-      execute: async (_args: any, context: any) => {
+      execute: async (_args, context) => {
         const events = await fetchMeetHardwareEvents(context.globalArgs, {
           startTime: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
         });
@@ -112,7 +124,7 @@ export const model = {
           "Maximum events to return",
         ),
       }),
-      execute: async (args: any, context: any) => {
+      execute: async (args, context) => {
         const startTime = args.startTime ||
           new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
@@ -124,19 +136,16 @@ export const model = {
 
         context.logger.info("Fetched {count} events", { count: events.length });
 
-        const handle = await context.writeResource("device", "events-query", {
-          deviceId: "query",
-          serialNumber: "",
-          displayName: "Events Query Result",
-          status: "unknown",
-          statusSince: startTime,
-          callState: "idle",
-          powerState: "awake",
-          peripherals: {},
-          lastEventAt: new Date().toISOString(),
+        const filter = args.eventName || "all";
+        const queryName = sanitizeId(
+          `events-${filter}-${startTime.slice(0, 10)}`,
+        );
+        const handle = await context.writeResource("eventsQuery", queryName, {
+          startTime,
+          filter,
           eventCount: events.length,
-          _events: events,
-          _filter: args.eventName || "all",
+          capturedAt: new Date().toISOString(),
+          events,
         });
 
         return { dataHandles: [handle] };
@@ -147,7 +156,7 @@ export const model = {
       description:
         "List all known Meet hardware devices by scanning 30 days of event history.",
       arguments: z.object({}),
-      execute: async (_args: any, context: any) => {
+      execute: async (_args, context) => {
         const events = await fetchMeetHardwareEvents(context.globalArgs, {
           startTime: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
             .toISOString(),
@@ -189,7 +198,7 @@ export const model = {
         deviceId: z.string().optional().describe("Device ID"),
         serialNumber: z.string().optional().describe("Device serial number"),
       }),
-      execute: async (args: any, context: any) => {
+      execute: async (args, context) => {
         if (!args.deviceId && !args.serialNumber) {
           throw new Error("Provide either deviceId or serialNumber");
         }
