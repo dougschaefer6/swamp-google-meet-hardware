@@ -96,7 +96,7 @@ The Reports API has a 1–3 hour delay before events become queryable. A 5-minut
 
 ## Quality and Testing
 
-This extension has been tested against live Workspace tenants with Logitech Rally Bar and Acer Chromebox Meet hardware. American Sound is solely responsible for this integration. Google does not provide direct support for third-party swamp extensions.
+This extension has been tested against live Workspace tenants with Logitech Rally Bar and Acer Chromebox Meet hardware. The maintainer is solely responsible for this integration. Google does not provide direct support for third-party swamp extensions.
 
 ## License
 
