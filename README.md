@@ -15,7 +15,6 @@ The Reports API is the same source the Workspace admin console uses for its hard
 - The Workspace customer ID (visible in the Workspace admin console under Account Settings)
 - An admin user email for the service account to impersonate
 - Swamp installed and a repository initialized
-- `openssl` available on `PATH` (used to sign the JWT for OAuth token exchange)
 
 ## Installation
 
